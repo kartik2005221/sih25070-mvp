@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SecureWipe — Verified Data Erasure</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b1220;
+    --surface: #121b2e;
+    --surface-2: #182338;
+    --border: #253352;
+    --text: #e6eaf2;
+    --muted: #8b96ab;
+    --accent: #34d399;
+    --accent-dim: #1f7a5c;
+    --warn: #f0b429;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 48px 24px 80px; }
+
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 40px;
+    line-height: 1.1;
+    margin: 0 0 14px;
+    font-weight: 700;
+  }
+  .sub { color: var(--muted); font-size: 15px; max-width: 560px; line-height: 1.6; margin-bottom: 36px; }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px;
+    margin-bottom: 20px;
+  }
+  .panel h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 16px;
+    margin: 0 0 4px;
+  }
+  .panel .desc { color: var(--muted); font-size: 13px; margin-bottom: 18px; }
+
+  .device-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .device-row input {
+    flex: 1;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+  }
+
+  .file-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 22px;
+    display: grid;
+    gap: 6px;
+  }
+  .file-list li {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    color: var(--muted);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    display: flex;
+    justify-content: space-between;
+    transition: all 0.25s ease;
+  }
+  .file-list li.wiped {
+    color: var(--accent);
+    border-color: var(--accent-dim);
+    text-decoration: line-through;
+    opacity: 0.7;
+  }
+
+  button.primary {
+    background: var(--accent);
+    color: #06231a;
+    border: none;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    padding: 14px 22px;
+    border-radius: 10px;
+    cursor: pointer;
+    width: 100%;
+    transition: transform 0.1s ease, opacity 0.2s ease;
+  }
+  button.primary:hover { opacity: 0.92; }
+  button.primary:active { transform: scale(0.99); }
+  button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .log {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    background: #08101c;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    margin-top: 16px;
+    min-height: 40px;
+    white-space: pre-wrap;
+    display: none;
+  }
+  .log.show { display: block; }
+  .log .ok { color: var(--accent); }
+
+  .cert-card {
+    display: none;
+    margin-top: 20px;
+    border: 1px solid var(--accent-dim);
+    background: linear-gradient(180deg, rgba(52,211,153,0.08), transparent);
+    border-radius: 12px;
+    padding: 22px;
+  }
+  .cert-card.show { display: block; }
+  .cert-card .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(52,211,153,0.15);
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    margin-bottom: 14px;
+  }
+  .cert-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 20px;
+    font-size: 13px;
+    margin-bottom: 18px;
+  }
+  .cert-grid div span { display:block; color: var(--muted); font-size: 11px; margin-bottom: 2px; }
+  .cert-grid div b { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 500; word-break: break-all; }
+
+  .cert-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .cert-actions a, .cert-actions button {
+    text-decoration: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    color: var(--text);
+    background: var(--surface-2);
+    cursor: pointer;
+  }
+  .cert-actions a.verify-link { border-color: var(--accent-dim); color: var(--accent); }
+
+  .note {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+    border-left: 2px solid var(--border);
+    padding-left: 14px;
+    margin-top: 32px;
+  }
+  .footer-links { margin-top: 10px; }
+  .footer-links a { color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">SIH 2025 · Prototype</div>
+  <h1>SecureWipe</h1>
+  <p class="sub">Erase your device with confidence. One click, a verifiable trail — no more hoarding old laptops out of fear your data is still on them.</p>
+
+  <div class="panel">
+    <h2>Device to sanitize</h2>
+    <div class="desc">In production this targets a full disk (Windows / Linux / Android). This demo targets a sandboxed folder so it's safe to run live.</div>
+    <div class="device-row">
+      <input id="deviceId" type="text" value="{{ device_id }}" />
+    </div>
+
+    <ul class="file-list" id="fileList">
+      {% for f in files %}
+      <li data-file="{{ f }}"><span>{{ f }}</span><span class="status">pending</span></li>
+      {% endfor %}
+    </ul>
+
+    <button class="primary" id="wipeBtn" onclick="startWipe()">Wipe &amp; Certify This Device</button>
+
+    <div class="log" id="log"></div>
+
+    <div class="cert-card" id="certCard">
+      <div class="badge">✓ CERTIFICATE ISSUED &amp; SIGNED</div>
+      <div class="cert-grid" id="certGrid"></div>
+      <div class="cert-actions">
+        <a id="pdfLink" href="#">Download PDF Certificate</a>
+        <a id="jsonLink" href="#">Download JSON Certificate</a>
+        <a class="verify-link" href="/verify" target="_blank">Verify this certificate →</a>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">
+    Prototype scope: this demonstrates the full pipeline — overwrite → delete → signed certificate → independent verification —
+    on a sandboxed folder using a real multi-pass overwrite and real RSA-PSS signing.
+    Raw-disk access for HPA/DCO and SSD sector sanitization, plus the bootable-USB flow, are the next engineering phase
+    (they require OS-level privileged drivers per platform, per NIST SP 800-88).
+  </p>
+  <div class="footer-links"><a href="/public-key" target="_blank">View issuing public key</a></div>
+</div>
+
+<script>
+async function startWipe() {
+  const btn = document.getElementById('wipeBtn');
+  const log = document.getElementById('log');
+  const items = document.querySelectorAll('#fileList li');
+  const deviceId = document.getElementById('deviceId').value;
+
+  btn.disabled = true;
+  btn.textContent = 'Wiping…';
+  log.classList.add('show');
+  log.textContent = `Starting secure erase on ${deviceId}\nMethod: 3-pass overwrite (Random / Zero / Random)\n`;
+
+  // visual progressive strike-through while the real request runs server-side
+  let i = 0;
+  const interval = setInterval(() => {
+    if (i < items.length) {
+      items[i].classList.add('wiped');
+      items[i].querySelector('.status').textContent = 'wiped ✓';
+      log.textContent += `> overwritten + deleted: ${items[i].dataset.file}\n`;
+      i++;
+    }
+  }, 350);
+
+  const res = await fetch('/wipe', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({device_id: deviceId})
+  });
+  const data = await res.json();
+
+  clearInterval(interval);
+  items.forEach(li => { li.classList.add('wiped'); li.querySelector('.status').textContent = 'wiped ✓'; });
+
+  log.textContent += `\nAll files sanitized. Generating signed certificate…\n`;
+  log.innerHTML += `<span class="ok">Certificate ${data.certificate.certificate_id} issued and signed (RSA-PSS-SHA256).</span>`;
+
+  const cert = data.certificate;
+  document.getElementById('certGrid').innerHTML = `
+    <div><span>Certificate ID</span><b>${cert.certificate_id}</b></div>
+    <div><span>Device ID</span><b>${cert.device_id}</b></div>
+    <div><span>Files Wiped</span><b>${cert.total_files}</b></div>
+    <div><span>Bytes Sanitized</span><b>${cert.total_bytes.toLocaleString()}</b></div>
+    <div><span>Method</span><b>${cert.wipe_method}</b></div>
+    <div><span>Status</span><b>${cert.status}</b></div>
+  `;
+  document.getElementById('pdfLink').href = data.pdf_url;
+  document.getElementById('jsonLink').href = data.json_url;
+  document.getElementById('certCard').classList.add('show');
+
+  btn.textContent = 'Wipe Complete';
+}
+</script>
+</body>
+</html>

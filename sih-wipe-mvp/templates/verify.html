@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SecureWipe — Verify Certificate</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b1220; --surface: #121b2e; --surface-2: #182338;
+    --border: #253352; --text: #e6eaf2; --muted: #8b96ab;
+    --accent: #34d399; --accent-dim: #1f7a5c; --danger: #f0685f;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 48px 24px 80px; }
+  .eyebrow { font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.12em; color: var(--accent); text-transform: uppercase; margin-bottom:12px; }
+  h1 { font-family:'Space Grotesk', sans-serif; font-size: 32px; margin: 0 0 10px; }
+  .sub { color: var(--muted); font-size: 14px; margin-bottom: 30px; line-height:1.6; }
+
+  .drop {
+    border: 1.5px dashed var(--border);
+    border-radius: 14px;
+    padding: 34px;
+    text-align: center;
+    background: var(--surface);
+    cursor: pointer;
+    transition: border-color .2s ease;
+  }
+  .drop:hover, .drop.drag { border-color: var(--accent-dim); }
+  .drop input { display: none; }
+  .drop .icon { font-size: 28px; margin-bottom: 8px; }
+  .drop .label { font-weight: 600; margin-bottom: 4px; }
+  .drop .hint { color: var(--muted); font-size: 12.5px; }
+
+  .result {
+    display: none;
+    margin-top: 22px;
+    border-radius: 12px;
+    padding: 22px;
+  }
+  .result.show { display: block; }
+  .result.valid { background: linear-gradient(180deg, rgba(52,211,153,0.1), transparent); border: 1px solid var(--accent-dim); }
+  .result.invalid { background: linear-gradient(180deg, rgba(240,104,95,0.1), transparent); border: 1px solid var(--danger); }
+
+  .result .headline { font-family:'Space Grotesk', sans-serif; font-size: 18px; margin-bottom: 14px; display:flex; align-items:center; gap:8px; }
+  .result.valid .headline { color: var(--accent); }
+  .result.invalid .headline { color: var(--danger); }
+
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; font-size: 13px; }
+  .kv span { color: var(--muted); }
+  .kv b { font-family:'JetBrains Mono', monospace; font-weight:500; word-break: break-all; }
+
+  .back { display:inline-block; margin-top: 30px; color: var(--muted); font-size: 13px; text-decoration:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">SIH 2025 · Verification Portal</div>
+  <h1>Verify a wipe certificate</h1>
+  <p class="sub">Upload a certificate JSON file to independently confirm it was issued by SecureWipe and hasn't been altered — this is the third-party verification step, usable by a buyer, auditor, or recycler with no relationship to the device owner.</p>
+
+  <div class="drop" id="drop" onclick="document.getElementById('fileInput').click()">
+    <div class="icon">📄</div>
+    <div class="label">Click to upload, or drag a certificate .json here</div>
+    <div class="hint">Only the JSON certificate is needed — not the PDF</div>
+    <input type="file" id="fileInput" accept=".json" />
+  </div>
+
+  <div class="result" id="result"></div>
+
+  <a class="back" href="/">← Back to wipe tool</a>
+</div>
+
+<script>
+const drop = document.getElementById('drop');
+const input = document.getElementById('fileInput');
+
+['dragover','dragenter'].forEach(evt => drop.addEventListener(evt, e => { e.preventDefault(); drop.classList.add('drag'); }));
+['dragleave','drop'].forEach(evt => drop.addEventListener(evt, e => { e.preventDefault(); drop.classList.remove('drag'); }));
+drop.addEventListener('drop', e => {
+  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+input.addEventListener('change', e => { if (e.target.files.length) handleFile(e.target.files[0]); });
+
+async function handleFile(file) {
+  const formData = new FormData();
+  formData.append('certfile', file);
+
+  const res = await fetch('/verify', { method: 'POST', body: formData });
+  const data = await res.json();
+  const el = document.getElementById('result');
+  el.classList.add('show');
+
+  if (data.valid) {
+    el.classList.add('valid'); el.classList.remove('invalid');
+    el.innerHTML = `
+      <div class="headline">✓ Signature Valid — Certificate Authentic</div>
+      <div class="kv">
+        <span>Certificate ID</span><b>${data.certificate_id}</b>
+        <span>Device ID</span><b>${data.device_id}</b>
+        <span>Status</span><b>${data.status}</b>
+        <span>Server record found</span><b>${data.server_record_found ? 'Yes' : 'No'}</b>
+      </div>`;
+  } else {
+    el.classList.add('invalid'); el.classList.remove('valid');
+    el.innerHTML = `<div class="headline">✗ Signature Invalid — Do Not Trust This Certificate</div>
+      <div class="kv"><span>Reason</span><b>${data.error || 'Signature does not match issuing authority key'}</b></div>`;
+  }
+}
+</script>
+</body>
+</html>

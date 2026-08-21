@@ -1,0 +1,40 @@
+{
+  "certificate_id": "WIPE-20260821-19448050",
+  "device_id": "DEMO-LAPTOP-3739",
+  "wipe_method": "NIST SP 800-88 Clear-equivalent -- 3-pass overwrite (Random / Zero / Random) + delete",
+  "files_wiped": [
+    {
+      "name": "bank_statements.pdf",
+      "size_bytes": 35000,
+      "passes": 3
+    },
+    {
+      "name": "browser_saved_passwords.db",
+      "size_bytes": 8000,
+      "passes": 3
+    },
+    {
+      "name": "college_documents.docx",
+      "size_bytes": 15000,
+      "passes": 3
+    },
+    {
+      "name": "personal_photos.dat",
+      "size_bytes": 20000,
+      "passes": 3
+    },
+    {
+      "name": "whatsapp_chat_backup.db",
+      "size_bytes": 50000,
+      "passes": 3
+    }
+  ],
+  "total_files": 5,
+  "total_bytes": 128000,
+  "start_time": "2026-08-21T15:47:09.521190+00:00",
+  "end_time": "2026-08-21T15:47:09.879977+00:00",
+  "status": "SUCCESS",
+  "software": "SecureWipe MVP v0.1 (SIH prototype)",
+  "signature": "M5t8nQnAjOWq+Qb2RSp/0zBR0O2dPN6B6PEpbyqY/LyYDPDVu2EUXjksq2u4vCzFpU5XPQZsKhEmiwVHLY32s1at4Txrh427Fujkqq14m0eqtlG7KipxZoMshw53xbM4sSQGc3qE/B/ciVYPd9eWW/f7EJBmlgB7g2Q7qSwb/mT8B6N4nc1XpR4ak3BAa0ZDeJZSoCh5Ai8puNCoOkdiEBr9IEJBRrfP55zT3gSCDL3qwI9qEkxbDuPj2u8zZQcBNREVMcxeNn6I2wYPJiqF/xCTkeszvRpnSwTsro5bvWHzM7ScGxVVcuHuVV9hPtbNb7EngV3gDAlHUPP+dcSJpg==",
+  "signature_algorithm": "RSA-PSS-SHA256"
+}

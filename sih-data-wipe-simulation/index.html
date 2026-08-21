@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SIH 2025 · Data Wipe Simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+/* ── RESET & TOKENS ─────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:     #000000;
+  --s0:     #111318;
+  --s1:     #222831;
+  --s2:     #31363F;
+  --border: #31363F;
+  --border2:#404752;
+  --text:   #EEEEEE;
+  --muted:  #76ABAE;
+  --accent: #76ABAE;
+  --green:  #5ecfa0;
+  --red:    #e07070;
+  --amber:  #d4a85a;
+  --purple: #a78bfa;
+}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'Inter',sans-serif;min-height:100vh;font-size:14px;
+  overflow:hidden; /* full-screen app */
+}
+@media(max-width:860px){body{overflow:auto}}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:var(--s0)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+
+/* ── HEADER ─────────────────────────────── */
+header{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:0 24px;height:52px;
+  border-bottom:1px solid var(--border);
+  background:var(--s0);
+  position:relative;z-index:40;
+}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{
+  width:34px;height:34px;border-radius:8px;font-size:18px;
+  background:linear-gradient(135deg,var(--accent),#4aaeb8);
+  display:grid;place-items:center;flex-shrink:0;
+}
+.logo-name{font-weight:800;font-size:15px;color:var(--text)}
+.logo-sub{font-size:10px;color:var(--muted)}
+#hdr-badge{
+  padding:4px 12px;border-radius:99px;font-size:11px;font-weight:700;
+  border:1px solid var(--border2);background:var(--s1);color:var(--muted);
+  transition:all .4s ease;
+}
+.btn-reset{
+  background:var(--s2);color:var(--muted);border:1px solid var(--border2);
+  padding:7px 16px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;
+  font-family:inherit;transition:all .2s;
+}
+.btn-reset:hover{color:var(--text);border-color:var(--muted)}
+
+/* ── STEP TABS ──────────────────────────── */
+.steps{
+  display:flex;border-bottom:1px solid var(--border);
+  background:var(--s1);overflow-x:auto;flex-shrink:0;
+}
+.step{
+  display:flex;align-items:center;gap:10px;padding:10px 24px;
+  cursor:pointer;border-bottom:2px solid transparent;
+  transition:all .2s;white-space:nowrap;flex:1;justify-content:center;min-width:0;
+}
+.step:hover{background:var(--s2)}
+.step.s-active{border-bottom-color:var(--accent)}
+.step.s-done  {border-bottom-color:var(--green)}
+.step.s-warn  {border-bottom-color:var(--red)}
+.step-num{
+  width:24px;height:24px;border-radius:50%;display:grid;place-items:center;
+  font-size:11px;font-weight:800;background:var(--s2);color:var(--muted);
+  border:1px solid var(--border2);flex-shrink:0;transition:all .3s;
+}
+.step.s-active .step-num{background:rgba(118,171,174,.18);color:var(--accent);border-color:rgba(118,171,174,.5)}
+.step.s-done   .step-num{background:rgba(94,207,160,.15);color:var(--green);border-color:rgba(94,207,160,.4)}
+.step.s-warn   .step-num{background:rgba(224,112,112,.15);color:var(--red);border-color:rgba(224,112,112,.4)}
+.step-label{font-size:12px;font-weight:700;line-height:1.2}
+.step-sub{font-size:10px;color:var(--muted);font-weight:400}
+
+/* ── LAYOUT ─────────────────────────────── */
+.layout{
+  display:grid;grid-template-columns:1fr 380px;
+  height:calc(100vh - 96px);/* header 52 + tabs 44 */
+}
+@media(max-width:860px){.layout{grid-template-columns:1fr;height:auto;overflow:auto}}
+
+/* ── LEFT ───────────────────────────────── */
+.left{display:flex;flex-direction:column;border-right:1px solid var(--border);overflow:hidden}
+
+.ph{
+  display:flex;align-items:center;justify-content:space-between;padding:10px 18px;
+  border-bottom:1px solid var(--border);background:var(--s1);flex-shrink:0;
+}
+.ph-t{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700}
+
+/* sector wrap */
+.sector-wrap{flex:1;padding:18px 18px 0;display:flex;flex-direction:column;gap:10px;overflow:hidden}
+
+#grid{
+  display:grid;grid-template-columns:repeat(16,1fr);gap:5px;
+  flex-shrink:0;
+}
+.sec{
+  aspect-ratio:1;border-radius:5px;cursor:pointer;
+  display:grid;place-items:center;
+  font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;
+  color:rgba(255,255,255,.3);border:1px solid transparent;
+  transition:transform .12s,box-shadow .15s,background .25s,border-color .25s;
+  position:relative;
+}
+.sec:hover{transform:scale(1.35);z-index:10}
+.sec.selected{outline:2px solid var(--accent);outline-offset:1px;transform:scale(1.3);z-index:10}
+
+/* sector states */
+.sec.free  {background:#141c28;border-color:#1e2a3e}
+.sec.active{background:#0e4a7a;border-color:#1a6aa8;color:rgba(255,255,255,.7);box-shadow:0 0 8px rgba(118,171,174,.2)}
+.sec.orphan{background:#5a1818;border-color:#8b2525;color:rgba(255,255,255,.7);animation:blink 1.5s ease-in-out infinite}
+.sec.wiped {background:#0d3a28;border-color:#1a5c3e;color:rgba(94,207,160,.5);box-shadow:0 0 5px rgba(94,207,160,.1)}
+.sec.hpa   {background:#3a2400;border-color:#6b4400;color:rgba(212,168,90,.5)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.45}}
+
+/* write-in pop animation */
+@keyframes pop-in{0%{transform:scale(0);opacity:0}60%{transform:scale(1.35)}100%{transform:scale(1);opacity:1}}
+.sec.writing{animation:pop-in .22s ease forwards}
+/* wipe sweep */
+@keyframes wipe-sweep{0%{background:#5a1818}40%{background:#1a6644}100%{background:#0d3a28}}
+.sec.wiping{animation:wipe-sweep .28s ease forwards}
+
+/* legend */
+.legend{display:flex;flex-wrap:wrap;gap:10px 16px;flex-shrink:0}
+.li{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted)}
+.ld{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+
+/* metrics row */
+.metrics{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  gap:1px;background:var(--border);border-top:1px solid var(--border);
+  flex-shrink:0;
+}
+.metric{background:var(--s1);padding:10px 16px}
+.m-l{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:3px}
+.m-v{font-size:15px;font-weight:800;font-family:'JetBrains Mono',monospace}
+.mv-a{color:var(--accent)}.mv-r{color:var(--red)}.mv-g{color:var(--green)}.mv-m{color:var(--muted)}
+
+/* action buttons */
+.actions{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  gap:8px;padding:12px 18px;border-top:1px solid var(--border);
+  background:var(--s1);flex-shrink:0;
+}
+.act{
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  padding:14px 8px;border-radius:10px;cursor:pointer;
+  border:1px solid var(--border2);background:var(--s2);
+  font-family:inherit;transition:all .2s;text-align:center;position:relative;
+}
+.act:hover{transform:translateY(-2px);border-color:var(--accent)}
+.act:active{transform:scale(.97)}
+.act-em{font-size:22px;line-height:1}
+.act-lbl{font-size:11px;font-weight:700;color:var(--text)}
+.act-num{
+  position:absolute;top:6px;right:7px;width:16px;height:16px;border-radius:50%;
+  background:var(--s0);color:var(--muted);font-size:9px;font-weight:800;
+  display:grid;place-items:center;
+}
+
+/* ── INFO BUTTON ─────────────────────────── */
+.ib{
+  width:18px;height:18px;border-radius:50%;background:var(--s2);
+  border:1px solid var(--border2);color:var(--muted);font-size:9px;
+  cursor:pointer;display:inline-grid;place-items:center;font-weight:700;
+  font-family:'JetBrains Mono',monospace;transition:all .15s;
+  flex-shrink:0;position:relative;z-index:1;
+}
+.ib:hover{border-color:var(--accent);color:var(--accent);background:rgba(118,171,174,.1)}
+
+/* ── TOOLTIP BUBBLE ──────────────────────── */
+#tooltip{
+  position:fixed;z-index:9999;
+  max-width:280px;width:max-content;
+  background:var(--s1);
+  border:1px solid var(--accent);
+  border-radius:12px;padding:14px 16px;
+  box-shadow:0 8px 32px rgba(0,0,0,.6),0 0 0 1px rgba(118,171,174,.1);
+  pointer-events:none;
+  opacity:0;transform:scale(.92) translateY(6px);
+  transition:opacity .18s ease,transform .18s ease;
+  will-change:opacity,transform;
+}
+#tooltip.show{opacity:1;transform:scale(1) translateY(0);pointer-events:auto}
+#tooltip::before{/* little triangle */
+  content:'';position:absolute;
+  border:6px solid transparent;
+}
+#tooltip.tip-left ::before{right:-12px;top:14px;border-left-color:var(--accent)}
+#tooltip h3{font-size:12px;font-weight:800;color:var(--accent);margin-bottom:7px;line-height:1.3}
+#tooltip p{font-size:11px;color:var(--muted);line-height:1.65}
+#tooltip p b{color:var(--text)}
+#tooltip .tip-close{
+  position:absolute;top:8px;right:8px;width:18px;height:18px;
+  background:var(--s2);border:1px solid var(--border2);border-radius:50%;
+  display:grid;place-items:center;cursor:pointer;font-size:10px;color:var(--muted);
+  pointer-events:auto;
+}
+#tooltip .tip-close:hover{color:var(--text)}
+.info-key{
+  display:inline-block;background:var(--s2);border:1px solid var(--border2);
+  padding:1px 6px;border-radius:4px;font-family:'JetBrains Mono',monospace;
+  font-size:10px;color:var(--text);
+}
+
+/* ── RIGHT PANEL ─────────────────────────── */
+.right{display:flex;flex-direction:column;background:var(--s0);overflow:hidden}
+
+.rt-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--s1)}
+.rt{
+  flex:1;padding:10px 14px;font-size:11px;font-weight:700;cursor:pointer;
+  border-bottom:2px solid transparent;text-align:center;color:var(--muted);
+  transition:all .2s;background:transparent;border-top:none;border-left:none;
+  border-right:none;font-family:inherit;
+}
+.rt.on{border-bottom-color:var(--accent);color:var(--accent);background:rgba(118,171,174,.05)}
+.rt:hover:not(.on){color:var(--text);background:var(--s2)}
+
+.rpane{display:none;flex:1;overflow:hidden;flex-direction:column}
+.rpane.on{display:flex}
+
+/* ── MFT TABLE ───────────────────────────── */
+.mft-note{
+  padding:9px 14px;font-size:11px;color:var(--muted);line-height:1.6;
+  border-bottom:1px solid var(--border);flex-shrink:0;background:rgba(118,171,174,.05);
+}
+.mft-note b{color:var(--accent)}
+.mft-scroll{overflow:auto;flex:1}
+
+table{width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:11px;table-layout:fixed}
+thead th{
+  position:sticky;top:0;z-index:2;background:var(--s2);
+  color:var(--muted);font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  padding:8px 10px;border-bottom:1px solid var(--border2);text-align:left;white-space:nowrap;overflow:hidden;
+}
+/* Column widths */
+th:nth-child(1){width:46px}   /* MFT # */
+th:nth-child(2){width:auto}   /* Filename — takes remaining */
+th:nth-child(3){width:80px}   /* Sectors */
+th:nth-child(4){width:90px}   /* In-Use */
+th:nth-child(5){width:90px}   /* $DATA */
+
+tbody tr{border-bottom:1px solid rgba(255,255,255,.04);transition:background .15s}
+tbody tr:hover{background:rgba(255,255,255,.03)}
+td{padding:9px 10px;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.t-inode{color:var(--purple);font-weight:700}
+.t-name{color:var(--text);font-size:11px}
+.t-sec{color:var(--amber);font-size:10px}
+.t-flag-t{color:var(--green);font-size:11px}
+.t-flag-f{color:var(--red);font-size:11px;text-decoration:line-through}
+.t-flag-w{color:var(--muted)}
+.t-data-ok{color:var(--muted)}
+.t-data-vuln{color:var(--red);font-weight:700}
+.t-data-safe{color:var(--green)}
+.mft-row-orphan td{background:rgba(224,112,112,.05)}
+.mft-row-wiped td{background:rgba(94,207,160,.04)}
+.hpa-tag{
+  display:inline-block;padding:1px 5px;border-radius:3px;margin-left:4px;
+  background:rgba(212,168,90,.12);color:var(--amber);font-size:8px;vertical-align:middle;
+}
+
+/* ── HEX PANE ────────────────────────────── */
+.hex-pane{padding:14px;flex:1;display:flex;flex-direction:column;gap:10px;overflow:hidden}
+.pane-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+.hex-box{
+  background:var(--bg);border:1px solid var(--border);border-radius:8px;
+  padding:11px 13px;font-family:'JetBrains Mono',monospace;font-size:11px;
+  overflow:auto;flex:1;min-height:0;
+}
+.hrow{display:flex;gap:14px;padding:2px 0;border-bottom:1px solid rgba(255,255,255,.03)}
+.h-off{color:var(--muted);min-width:42px;font-size:10px}
+.h-hex{flex:1;word-break:break-all}
+.h-asc{color:var(--muted);min-width:70px;font-size:10px}
+.hc-orphan{color:var(--red)}.hc-wiped{color:var(--green)}.hc-hpa{color:var(--amber)}
+.ent-row{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.ent-bg{flex:1;height:5px;background:var(--s2);border-radius:99px;overflow:hidden}
+.ent-fill{height:100%;border-radius:99px;transition:width .4s,background .4s}
+.ent-lbl{font-size:10px;color:var(--muted)}
+.ent-val{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;min-width:88px;text-align:right}
+.ent-hint{padding:8px 10px;background:var(--s1);border:1px solid var(--border);border-radius:7px;font-size:10px;color:var(--muted);line-height:1.6}
+.ent-hint b{color:var(--text)}
+
+/* ── CONSOLE PANE ────────────────────────── */
+.con-pane{padding:14px;flex:1;display:flex;flex-direction:column;gap:8px;overflow:hidden}
+.con-head{display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+#con-st{font-size:10px;font-weight:700;color:var(--muted)}
+.console{
+  background:var(--bg);border:1px solid var(--border);border-radius:8px;
+  padding:11px;font-family:'JetBrains Mono',monospace;font-size:11px;
+  flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:3px;min-height:0;
+}
+.cl{display:flex;gap:7px;line-height:1.5}
+.cl-ts{color:var(--border2);flex-shrink:0;font-size:10px}
+.cl-info{color:var(--accent)}
+.cl-warn{color:var(--amber);font-weight:600}
+.cl-err{color:var(--red);font-weight:700}
+.cl-ok{color:var(--green);font-weight:700}
+.cl-sys{color:var(--muted)}
+
+/* ── SCAN ANIMATION ──────────────────────── */
+#scan-line{display:none;height:2px;margin:0 18px;background:linear-gradient(90deg,transparent,var(--amber),transparent);animation:scan-slide 1s ease-in-out infinite}
+#scan-line.show{display:block}
+@keyframes scan-slide{0%{opacity:0;transform:scaleX(.1)}50%{opacity:1;transform:scaleX(1)}100%{opacity:0;transform:scaleX(.1)}}
+
+/* ── WIPE MODAL ──────────────────────────── */
+.modal-bg{
+  display:none;position:fixed;inset:0;z-index:100;
+  background:rgba(0,0,0,.75);backdrop-filter:blur(8px);
+  place-items:center;
+}
+.modal-bg.show{display:grid}
+.modal{
+  background:var(--s1);border:1px solid var(--border2);border-radius:16px;
+  padding:24px;max-width:400px;width:calc(100% - 32px);
+  box-shadow:0 24px 64px rgba(0,0,0,.7);
+}
+.modal h2{font-size:16px;font-weight:800;margin-bottom:4px}
+.modal p{font-size:11px;color:var(--muted);margin-bottom:16px;line-height:1.6}
+.wopt{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:11px 13px;border-radius:9px;border:1px solid var(--border2);
+  background:var(--s2);cursor:pointer;transition:all .2s;margin-bottom:7px;
+}
+.wopt:hover,.wopt.sel{border-color:rgba(118,171,174,.5);background:rgba(118,171,174,.07)}
+.wopt input{margin-top:3px;accent-color:var(--accent);flex-shrink:0}
+.wopt-t{font-size:12px;font-weight:700;margin-bottom:2px}
+.wopt-d{font-size:10px;color:var(--muted);line-height:1.5}
+.tag-rec{background:rgba(94,207,160,.15);color:var(--green);padding:1px 6px;border-radius:3px;font-size:9px;margin-left:6px;vertical-align:middle}
+.tag-ssd{background:rgba(118,171,174,.15);color:var(--accent);padding:1px 6px;border-radius:3px;font-size:9px;margin-left:6px;vertical-align:middle}
+.wchk{display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:7px;background:var(--s2);border:1px solid var(--border2);margin-bottom:16px;font-size:11px}
+.wchk input{accent-color:var(--accent)}
+.modal-btns{display:flex;gap:8px}
+.mb{flex:1;padding:11px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;border:none;transition:all .2s}
+.mb-c{background:var(--s2);color:var(--muted)}.mb-c:hover{color:var(--text)}
+.mb-g{background:var(--accent);color:#04201e}.mb-g:hover{background:#85c5c8}
+
+/* ── PROGRESS ────────────────────────────── */
+#prog{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.9);place-items:center}
+#prog.show{display:grid}
+.prog-box{text-align:center}
+.prog-icon{font-size:48px;margin-bottom:16px;display:block;animation:spin-glow .8s ease-in-out infinite alternate}
+@keyframes spin-glow{from{filter:brightness(1)}to{filter:brightness(1.4) drop-shadow(0 0 12px var(--green))}}
+.prog-t{font-size:20px;font-weight:800;margin-bottom:6px}
+.prog-s{font-size:12px;color:var(--muted);margin-bottom:28px}
+.prog-track{background:var(--s2);border-radius:99px;height:6px;width:280px;overflow:hidden;margin:0 auto 10px}
+.prog-fill{height:100%;background:var(--green);border-radius:99px;transition:width .04s linear}
+.prog-pct{font-family:'JetBrains Mono',monospace;font-size:32px;font-weight:800;color:var(--green)}
+.prog-sec{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:6px}
+
+/* ── TOAST ───────────────────────────────── */
+#toast{
+  position:fixed;bottom:20px;right:20px;z-index:9000;
+  background:var(--s1);border:1px solid var(--border2);border-radius:10px;
+  padding:11px 18px;font-size:12px;font-weight:600;
+  box-shadow:0 8px 28px rgba(0,0,0,.6);
+  display:flex;align-items:center;gap:9px;
+  transform:translateY(60px);opacity:0;transition:all .28s ease;pointer-events:none;
+}
+#toast.show{transform:translateY(0);opacity:1}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">🛡️</div>
+    <div>
+      <div class="logo-name">Data Wipe Simulator</div>
+      <div class="logo-sub">SIH 2025 · Ministry of Mines / JNARDDC · NIST SP 800-88</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <span id="hdr-badge">⚪ Empty Drive</span>
+    <button class="btn-reset" onclick="resetAll()">↺ Reset</button>
+  </div>
+</header>
+
+<!-- STEP TABS -->
+<div class="steps">
+  <div class="step s-active" id="stab-1" onclick="loadFiles()">
+    <div class="step-num">1</div>
+    <div><div class="step-label">💾 Save Files</div><div class="step-sub">Write to disk sectors</div></div>
+  </div>
+  <div class="step" id="stab-2" onclick="osDelete()">
+    <div class="step-num">2</div>
+    <div><div class="step-label">🗑️ OS Delete</div><div class="step-sub">Shift + Delete</div></div>
+  </div>
+  <div class="step" id="stab-3" onclick="forensicScan()">
+    <div class="step-num">3</div>
+    <div><div class="step-label">🔍 Forensic Scan</div><div class="step-sub">Recover deleted files</div></div>
+  </div>
+  <div class="step" id="stab-4" onclick="openWipe()">
+    <div class="step-num">4</div>
+    <div><div class="step-label">🧹 Secure Wipe</div><div class="step-sub">NIST SP 800-88</div></div>
+  </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- LEFT: Sector map -->
+  <div class="left">
+    <div class="ph">
+      <div class="ph-t">
+        💽 Physical Storage Block Map
+        <button class="ib" onclick="showTip(this,'disk')">i</button>
+      </div>
+      <span style="font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace">64 sectors · 512 B each</span>
+    </div>
+
+    <div class="sector-wrap">
+      <div id="grid"></div>
+      <div id="scan-line"></div>
+
+      <!-- Legend -->
+      <div class="legend">
+        <div class="li"><div class="ld" style="background:#141c28;border:1px solid #1e2a3e"></div>Free</div>
+        <div class="li"><div class="ld" style="background:#0e4a7a;border:1px solid #1a6aa8"></div>File Data (Active)</div>
+        <div class="li"><div class="ld" style="background:#5a1818;border:1px solid #8b2525"></div>OS-Deleted (data still here!)</div>
+        <div class="li"><div class="ld" style="background:#0d3a28;border:1px solid #1a5c3e"></div>Securely Wiped (0x00)</div>
+        <div class="li"><div class="ld" style="background:#3a2400;border:1px solid #6b4400"></div>HPA / Hidden Area</div>
+      </div>
+
+      <!-- Metrics -->
+      <div class="metrics">
+        <div class="metric"><div class="m-l">Allocated</div><div class="m-v mv-a" id="m-alloc">0</div></div>
+        <div class="metric"><div class="m-l">Orphaned</div><div class="m-v mv-r" id="m-orphan">0</div></div>
+        <div class="metric"><div class="m-l">Wiped</div><div class="m-v mv-g" id="m-wiped">0</div></div>
+        <div class="metric"><div class="m-l">Forensic Risk</div><div class="m-v mv-m" id="m-risk">Safe</div></div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="actions">
+      <button class="act" onclick="loadFiles()">
+        <span class="act-num">1</span>
+        <span class="act-em">📁</span>
+        <span class="act-lbl">Load Files</span>
+      </button>
+      <button class="act" onclick="osDelete()">
+        <span class="act-num">2</span>
+        <span class="act-em">🗑️</span>
+        <span class="act-lbl">OS Delete</span>
+        <button class="ib" style="position:absolute;top:7px;left:7px" onclick="event.stopPropagation();showTip(this,'delete')">i</button>
+      </button>
+      <button class="act" onclick="forensicScan()">
+        <span class="act-num">3</span>
+        <span class="act-em">🔬</span>
+        <span class="act-lbl">Forensic Scan</span>
+        <button class="ib" style="position:absolute;top:7px;left:7px" onclick="event.stopPropagation();showTip(this,'forensic')">i</button>
+      </button>
+      <button class="act" onclick="openWipe()">
+        <span class="act-num">4</span>
+        <span class="act-em">🧹</span>
+        <span class="act-lbl">Secure Wipe</span>
+        <button class="ib" style="position:absolute;top:7px;left:7px" onclick="event.stopPropagation();showTip(this,'wipe')">i</button>
+      </button>
+    </div>
+  </div>
+
+  <!-- RIGHT: Tabs panel -->
+  <div class="right">
+    <div class="rt-tabs">
+      <button class="rt on" id="rtab-mft" onclick="switchTab('mft')">📋 MFT Index</button>
+      <button class="rt" id="rtab-hex" onclick="switchTab('hex')">🔍 Hex View</button>
+      <button class="rt" id="rtab-log" onclick="switchTab('log')">🖥 Console</button>
+    </div>
+
+    <!-- MFT -->
+    <div class="rpane on" id="pane-mft">
+      <div class="mft-note">
+        <b>Master File Table (MFT)</b> — maps filenames → physical sectors.
+        OS delete only flips <b>In-Use flag</b> to FALSE. Raw bytes stay on disk!
+        <button class="ib" onclick="showTip(this,'mft')" style="vertical-align:middle;margin-left:4px">i</button>
+      </div>
+      <div class="mft-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>MFT #</th>
+              <th>Filename</th>
+              <th>Sectors</th>
+              <th>In-Use Flag</th>
+              <th>$DATA</th>
+            </tr>
+          </thead>
+          <tbody id="mft-body">
+            <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:28px;font-style:italic;font-family:'Inter',sans-serif">Load files to populate MFT.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- HEX -->
+    <div class="rpane" id="pane-hex">
+      <div class="hex-pane">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span class="pane-label">Raw Sector Bytes</span>
+          <span id="hex-badge" style="font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace">← click a sector</span>
+        </div>
+        <div class="hex-box" id="hex-box">
+          <div style="color:var(--muted);font-style:italic;font-size:11px">Click any block in the grid to inspect its raw bytes.</div>
+        </div>
+        <div class="ent-row">
+          <span class="ent-lbl">Entropy H(X):</span>
+          <div class="ent-bg"><div class="ent-fill" id="ent-fill" style="width:0%;background:var(--accent)"></div></div>
+          <span class="ent-val" id="ent-val" style="color:var(--muted)">— bits/byte</span>
+        </div>
+        <div class="ent-hint">
+          <b>Entropy</b> = data randomness. Real data ≈ 4–6 bits/byte. Wiped disk = <b style="color:var(--green)">0.00</b> (pure zeros, nothing to recover).
+        </div>
+      </div>
+    </div>
+
+    <!-- CONSOLE -->
+    <div class="rpane" id="pane-log">
+      <div class="con-pane">
+        <div class="con-head">
+          <span class="pane-label">Audit Console</span>
+          <span id="con-st">IDLE</span>
+        </div>
+        <div class="console" id="console">
+          <div class="cl"><span class="cl-ts">--:--</span><span class="cl-sys">Simulator ready. Press Step 1 →</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /layout -->
+
+<!-- FLOATING TOOLTIP -->
+<div id="tooltip">
+  <div class="tip-close" onclick="closeTip()">✕</div>
+  <h3 id="tip-title"></h3>
+  <p id="tip-body"></p>
+</div>
+
+<!-- WIPE MODAL -->
+<div id="wipe-modal" class="modal-bg">
+  <div class="modal">
+    <h2>🧹 Choose Wipe Standard</h2>
+    <p>All standards overwrite raw sectors. Our tool also purges hidden HPA/DCO sectors that regular tools miss.</p>
+    <label class="wopt sel">
+      <input type="radio" name="wm" value="clear" checked/>
+      <div>
+        <div class="wopt-t">NIST SP 800-88 — Clear<span class="tag-rec">Recommended</span></div>
+        <div class="wopt-d">1-pass 0x00 overwrite + read-back verify. Best for HDDs.</div>
+      </div>
+    </label>
+    <label class="wopt">
+      <input type="radio" name="wm" value="purge"/>
+      <div>
+        <div class="wopt-t">NIST SP 800-88 — Purge / Crypto Erase<span class="tag-ssd">SSD / NVMe</span></div>
+        <div class="wopt-d">Controller-level erase + encryption key destruction. Reaches wear-leveled cells.</div>
+      </div>
+    </label>
+    <label class="wopt">
+      <input type="radio" name="wm" value="dod"/>
+      <div>
+        <div class="wopt-t">DoD 5220.22-M — 3 Pass</div>
+        <div class="wopt-d">0x00 → 0xFF → random bytes. Legacy military standard.</div>
+      </div>
+    </label>
+    <div class="wchk" style="margin-top:10px">
+      <input type="checkbox" id="chk-hpa" checked/>
+      <label for="chk-hpa">Also wipe HPA / DCO hidden sectors</label>
+    </div>
+    <div class="modal-btns">
+      <button class="mb mb-c" onclick="closeWipe()">Cancel</button>
+      <button class="mb mb-g" onclick="startWipe()">▶ Start Wipe</button>
+    </div>
+  </div>
+</div>
+
+<!-- PROGRESS -->
+<div id="prog">
+  <div class="prog-box">
+    <span class="prog-icon">🧹</span>
+    <div class="prog-t">Sanitizing Drive…</div>
+    <div class="prog-s" id="prog-s">NIST SP 800-88 Clear — writing 0x00</div>
+    <div class="prog-track"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+    <div class="prog-pct" id="prog-pct">0%</div>
+    <div class="prog-sec" id="prog-sec">Sector [00 / 64]</div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"><span id="t-icon">✅</span><span id="t-msg">Done</span></div>
+
+<script>
+/* ══════════════════════════════════════════
+   DATA
+══════════════════════════════════════════ */
+const NSEC = 64;
+let secs = [], files = [], selSec = -1, scanning = false;
+/* Track which right-tab is active */
+let activeTab = 'mft';
+
+const FILES_DEF = [
+  { id:1, mft:5,  name:"aadhaar_kyc.pdf",      type:"PDF",    secs:[4,5,6,7,8,9],   ext:"%PDF-",
+    data:"%PDF-1.5\nAadhaar: 9876-5432-1098\nName: Anjaneya Kumar\nDOB: 1998-05-12\nAddress: New Delhi 110024" },
+  { id:2, mft:8,  name:"bank_statement.xlsx",   type:"XLSX",   secs:[14,15,16,17],   ext:"PK\x03\x04",
+    data:"PK\x03\x04 Account:50100298412\nBalance:INR 4,50,780\nIFSC:SBIN0000691" },
+  { id:3, mft:11, name:"saved_passwords.db",    type:"SQLite", secs:[24,25,26,27],   ext:"SQLite",
+    data:"SQLite format 3\nGMAIL=pass@2025!\nAWS_KEY=AKIAIOSFODNN7EXAMPLE" },
+  { id:4, mft:14, name:"whatsapp_backup.db",    type:"DB",     secs:[36,37,38,39],   ext:"WA_BK",
+    data:"WA_BACKUP v2\nChats:4821\nPhone:+91-98765-43210\nMedia:1.2 GB" },
+  { id:5, mft:99, name:"firmware_hpa.sys",      type:"SYS",    secs:[62,63],         ext:"FWREC", isHPA:true,
+    data:"FWREC-HPA-DCO\nBITLOCKER=12345-ABCDE\nVAULT_KEY=b3BlbnNzaC..." },
+];
+
+const TIPS = {
+  disk:{
+    title:"💽 What are Storage Sectors?",
+    body:`A drive is split into tiny blocks called <b>sectors</b> (512 bytes each). Every file you save is written into specific sectors. Each coloured block = 1 physical sector on real hardware.`
+  },
+  mft:{
+    title:"📋 What is the MFT?",
+    body:`The <b>Master File Table (MFT)</b> in NTFS / Inode Table in ext4 maps every filename → its sectors. It stores a critical <b>In-Use Flag</b>. When you delete, the OS only flips this flag to FALSE — <b>raw bytes are never touched!</b>`
+  },
+  delete:{
+    title:"🗑️ Why is OS Delete Unsafe?",
+    body:`<span class="info-key">Shift+Delete</span> only sets the MFT In-Use flag to FALSE and marks sectors as "free". <b>Zero bytes are overwritten.</b> The data is still physically on the disk — like removing a label from a shelf but leaving the books.`
+  },
+  forensic:{
+    title:"🔍 How Forensic Recovery Works",
+    body:`Tools like <b>PhotoRec & Autopsy</b> skip the file system and scan raw sectors for magic bytes: <span class="info-key">%PDF-</span> for PDFs, <span class="info-key">PK\x03\x04</span> for ZIP/Office, <span class="info-key">SQLite</span> for databases. Since data was never erased, <b>100% of "deleted" files are recovered!</b>`
+  },
+  wipe:{
+    title:"🛡️ How NIST SP 800-88 Wipe Works",
+    body:`Our tool opens the raw drive <span class="info-key">/dev/sda</span> and writes <span class="info-key">0x00</span> to every sector byte. It also purges hidden <b>HPA/DCO</b> sectors. A verification pass confirms entropy = <b style="color:var(--green)">0.00 bits/byte</b>. Then issues an RSA-PSS signed audit certificate.`
+  }
+};
+
+/* ══════════════════════════════════════════
+   TOOLTIP (bubble, not modal overlay)
+══════════════════════════════════════════ */
+let tipTimeout = null;
+function showTip(btn, key) {
+  closeTip();
+  const info = TIPS[key];
+  const tip  = document.getElementById('tooltip');
+  document.getElementById('tip-title').innerHTML = info.title;
+  document.getElementById('tip-body').innerHTML  = info.body;
+
+  /* Position relative to button */
+  const rect   = btn.getBoundingClientRect();
+  const TW     = 280, TH = 180; /* approx */
+  const margin = 10;
+  tip.style.maxWidth = TW + 'px';
+
+  /* Prefer right of button, fall back to left */
+  let left = rect.right + margin;
+  if (left + TW > window.innerWidth - margin) left = rect.left - TW - margin;
+  left = Math.max(margin, left);
+
+  /* Vertical: align top to button, clamp to viewport */
+  let top = rect.top - 8;
+  if (top + TH > window.innerHeight - margin) top = window.innerHeight - TH - margin;
+  top = Math.max(margin, top);
+
+  tip.style.left = left + 'px';
+  tip.style.top  = top  + 'px';
+
+  /* Show */
+  tip.classList.add('show');
+
+  /* Auto-hide after 6 s */
+  tipTimeout = setTimeout(closeTip, 6000);
+
+  /* Click outside to close */
+  setTimeout(() => document.addEventListener('click', outsideTipClick), 50);
+}
+function outsideTipClick(e) {
+  const tip = document.getElementById('tooltip');
+  if (!tip.contains(e.target)) closeTip();
+}
+function closeTip() {
+  document.getElementById('tooltip').classList.remove('show');
+  clearTimeout(tipTimeout);
+  document.removeEventListener('click', outsideTipClick);
+}
+
+/* ══════════════════════════════════════════
+   INIT / RENDER
+══════════════════════════════════════════ */
+function init() {
+  secs = Array.from({length: NSEC}, (_, i) => ({
+    status: i >= 62 ? 'hpa' : 'free', fileId: null, data: i >= 62 ? FILES_DEF[4].data : ''
+  }));
+  files = [];
+  selSec = -1;
+}
+
+function renderGrid() {
+  const g = document.getElementById('grid');
+  g.innerHTML = '';
+  secs.forEach((s, i) => {
+    const d = document.createElement('div');
+    d.className = 'sec ' + s.status + (i === selSec ? ' selected' : '');
+    d.textContent = i.toString(16).toUpperCase().padStart(2, '0');
+    d.title = `Sector 0x${i.toString(16).padStart(2,'0').toUpperCase()} · ${s.status}`;
+    d.onclick = () => { selSec = i; renderGrid(); showHex(i); switchTab('hex'); };
+    g.appendChild(d);
+  });
+  updateMetrics();
+}
+
+function updateMetrics() {
+  const alloc  = secs.filter(s => s.status === 'active').length;
+  const orphan = secs.filter(s => s.status === 'orphan').length;
+  const wiped  = secs.filter(s => s.status === 'wiped').length;
+
+  document.getElementById('m-alloc').textContent  = alloc;
+  document.getElementById('m-orphan').textContent = orphan;
+  document.getElementById('m-wiped').textContent  = wiped;
+
+  const rEl = document.getElementById('m-risk');
+  if (orphan > 0)        { rEl.textContent = '⚠ Critical'; rEl.className = 'm-v mv-r'; }
+  else if (wiped === NSEC){ rEl.textContent = '✅ Zero';    rEl.className = 'm-v mv-g'; }
+  else                    { rEl.textContent = 'Safe';       rEl.className = 'm-v mv-m'; }
+
+  const hb = document.getElementById('hdr-badge');
+  if (orphan > 0)
+    { hb.textContent = '🔴 Data Exposed!'; hb.style.cssText = 'border-color:rgba(224,112,112,.5);color:var(--red);background:rgba(224,112,112,.1)'; }
+  else if (wiped === NSEC)
+    { hb.textContent = '🟢 Sanitized';    hb.style.cssText = 'border-color:rgba(94,207,160,.5);color:var(--green);background:rgba(94,207,160,.1)'; }
+  else if (alloc > 0)
+    { hb.textContent = '🟡 Files on Disk';hb.style.cssText = 'border-color:rgba(212,168,90,.5);color:var(--amber);background:rgba(212,168,90,.1)'; }
+  else
+    { hb.textContent = '⚪ Empty Drive';  hb.style.cssText = ''; }
+}
+
+function renderMFT() {
+  const tb = document.getElementById('mft-body');
+  if (!files.length) {
+    tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:28px;font-style:italic;font-family:Inter,sans-serif">Load files to populate MFT.</td></tr>';
+    return;
+  }
+  tb.innerHTML = '';
+  files.forEach(f => {
+    const tr = document.createElement('tr');
+    if (f.status === 'orphan') tr.className = 'mft-row-orphan';
+    if (f.status === 'wiped')  tr.className = 'mft-row-wiped';
+
+    const sr   = `${f.secs[0].toString(16).toUpperCase()}–${f.secs.at(-1).toString(16).toUpperCase()}`;
+    const flag = f.status === 'active'  ? `<span class="t-flag-t">✔ TRUE</span>`
+               : f.status === 'orphan' ? `<span class="t-flag-f">✘ FALSE</span>`
+                                       : `<span class="t-flag-w">—</span>`;
+    const data = f.status === 'active'  ? `<span class="t-data-ok">Resident</span>`
+               : f.status === 'orphan' ? `<span class="t-data-vuln">⚠ Intact!</span>`
+                                       : `<span class="t-data-safe">✅ 0x00</span>`;
+    tr.innerHTML = `
+      <td class="t-inode">${f.mft}</td>
+      <td class="t-name" title="${f.name}">${f.name}${f.isHPA ? '<span class="hpa-tag">HPA</span>' : ''}</td>
+      <td class="t-sec">${sr}</td>
+      <td>${flag}</td>
+      <td>${data}</td>
+    `;
+    tb.appendChild(tr);
+  });
+}
+
+/* ══════════════════════════════════════════
+   HEX VIEW
+══════════════════════════════════════════ */
+function showHex(i) {
+  const s   = secs[i];
+  const cls = s.status === 'orphan' ? 'hc-orphan' : s.status === 'wiped' ? 'hc-wiped' : s.status === 'hpa' ? 'hc-hpa' : '';
+  document.getElementById('hex-badge').textContent = `Sector 0x${i.toString(16).padStart(2,'0').toUpperCase()} · ${s.status}`;
+
+  const box = document.getElementById('hex-box');
+  const d   = s.data || '';
+  box.innerHTML = '';
+
+  for (let r = 0; r < 2; r++) {
+    const base = r * 16;
+    const off  = (i * 32 + base).toString(16).padStart(4,'0').toUpperCase();
+    let hex = '', asc = '';
+    for (let c = 0; c < 16; c++) {
+      const ch = base + c < d.length ? d.charCodeAt(base + c) : 0;
+      hex += ch.toString(16).padStart(2,'0').toUpperCase() + (c < 15 ? ' ' : '');
+      asc += (ch >= 32 && ch <= 126) ? String.fromCharCode(ch) : '.';
+    }
+    const row = document.createElement('div');
+    row.className = 'hrow';
+    row.innerHTML = `<span class="h-off">0x${off}</span><span class="h-hex ${cls}">${hex}</span><span class="h-asc">${asc}</span>`;
+    box.appendChild(row);
+  }
+
+  const H    = entropy(d);
+  const pct  = Math.min(100, (H / 8) * 100);
+  const fill = document.getElementById('ent-fill');
+  fill.style.width      = pct + '%';
+  fill.style.background = s.status === 'orphan' ? 'var(--red)' : s.status === 'wiped' ? 'var(--green)' : 'var(--accent)';
+  const val = document.getElementById('ent-val');
+  val.textContent = H.toFixed(2) + ' bits/byte';
+  val.style.color = s.status === 'orphan' ? 'var(--red)' : s.status === 'wiped' ? 'var(--green)' : 'var(--accent)';
+}
+
+function entropy(s) {
+  if (!s || !s.length) return 0;
+  const f = {};
+  for (const c of s) f[c] = (f[c] || 0) + 1;
+  return Object.values(f).reduce((h, v) => { const p = v / s.length; return h - p * Math.log2(p); }, 0);
+}
+
+/* ══════════════════════════════════════════
+   TABS  — does NOT auto-switch on clog()
+══════════════════════════════════════════ */
+function switchTab(id) {
+  activeTab = id;
+  ['mft','hex','log'].forEach(t => {
+    document.getElementById('rtab-' + t).classList.toggle('on', t === id);
+    document.getElementById('pane-' + t).classList.toggle('on', t === id);
+  });
+}
+
+/* ══════════════════════════════════════════
+   CONSOLE  — silent background log
+   (never auto-switches the tab)
+══════════════════════════════════════════ */
+function clog(type, msg) {
+  const c  = document.getElementById('console');
+  const d  = document.createElement('div');
+  const ts = new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit',hour12:false});
+  d.className = 'cl';
+  d.innerHTML = `<span class="cl-ts">${ts}</span><span class="cl-${type}">${msg}</span>`;
+  c.appendChild(d);
+  c.scrollTop = c.scrollHeight;
+
+  const labels = {info:'INFO',warn:'WARN',err:'DANGER',ok:'SUCCESS',sys:'SYSTEM'};
+  document.getElementById('con-st').textContent = labels[type] || type;
+  document.getElementById('con-st').style.color =
+    type==='err'?'var(--red)':type==='ok'?'var(--green)':type==='warn'?'var(--amber)':'var(--muted)';
+  /* NOTE: no switchTab() call here — user stays on whatever tab they chose */
+}
+
+/* ══════════════════════════════════════════
+   STEP HIGHLIGHT
+══════════════════════════════════════════ */
+function setStep(n, cls) {
+  [1,2,3,4].forEach(i => {
+    document.getElementById('stab-' + i).className = 'step' + (i === n ? ' ' + cls : '');
+  });
+}
+
+/* ══════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════ */
+function toast(msg, icon = '✅') {
+  document.getElementById('t-icon').textContent = icon;
+  document.getElementById('t-msg').textContent  = msg;
+  const t = document.getElementById('toast');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+/* ══════════════════════════════════════════
+   STEP 1 — LOAD FILES
+══════════════════════════════════════════ */
+function loadFiles() {
+  init();
+  files = FILES_DEF.map(f => ({...f, status:'active'}));
+
+  /* Animate sector writes one by one */
+  const allSecs = files.flatMap(f => f.secs.map(si => ({si, f})));
+  allSecs.forEach(({si, f}, idx) => {
+    setTimeout(() => {
+      secs[si].status = f.isHPA ? 'hpa' : 'active';
+      secs[si].data   = f.data;
+      secs[si].fileId = f.id;
+      renderGrid();
+      /* flash the element */
+      const el = document.getElementById('grid').children[si];
+      if (el) { el.classList.add('writing'); setTimeout(() => el.classList.remove('writing'), 250); }
+    }, idx * 35);
+  });
+
+  setTimeout(() => {
+    renderGrid(); renderMFT();
+    if (selSec >= 0) showHex(selSec);
+    setStep(1, 's-active');
+    clog('info', `${files.length} files written to ${allSecs.length} sectors. MFT In-Use = TRUE.`);
+    toast('Files written to disk', '💾');
+  }, allSecs.length * 35 + 50);
+}
+
+/* ══════════════════════════════════════════
+   STEP 2 — OS DELETE
+══════════════════════════════════════════ */
+function osDelete() {
+  if (!files.length) { toast('Load files first!', '⚠️'); return; }
+  if (files.some(f => f.status === 'orphan')) { toast('Already deleted — run forensic scan next', '🔍'); return; }
+
+  files.forEach(f => {
+    if (!f.isHPA) {
+      f.status = 'orphan';
+      f.secs.forEach(si => { secs[si].status = 'orphan'; });
+    }
+  });
+
+  renderGrid(); renderMFT();
+  if (selSec >= 0) showHex(selSec);
+  setStep(2, 's-warn');
+  clog('warn', 'Shift+Delete: MFT In-Use flags → FALSE. Sectors marked "free".');
+  clog('err',  '⚠ ZERO bytes overwritten. All file data physically still on disk!');
+  toast('Files "deleted" — data still on disk!', '⚠️');
+  /* Stay on current tab — do NOT switch */
+}
+
+/* ══════════════════════════════════════════
+   STEP 3 — FORENSIC SCAN
+══════════════════════════════════════════ */
+function forensicScan() {
+  if (!files.length) { toast('Load files first!', '⚠️'); return; }
+  if (scanning) return;
+  scanning = true;
+
+  setStep(3, 's-warn');
+  clog('warn', 'Forensic scanner started (simulating PhotoRec / Autopsy)…');
+  clog('info', 'Scanning for magic bytes: %PDF-, PK\\x03\\x04, SQLite…');
+  document.getElementById('scan-line').classList.add('show');
+  toast('Scanning unallocated sectors…', '🔬');
+
+  let i = 0;
+  const t = setInterval(() => {
+    if (i >= NSEC) { clearInterval(t); document.getElementById('scan-line').classList.remove('show'); finishScan(); return; }
+    i += 2;
+  }, 40);
+}
+
+function finishScan() {
+  scanning = false;
+  const found = files.filter(f => f.status === 'orphan' || f.status === 'active');
+  if (found.length) {
+    clog('err', `💀 ${found.length} files recovered from "empty" sectors!`);
+    found.forEach(f => clog('err', `   → ${f.name} [magic: ${f.ext.slice(0,8)}…]`));
+    clog('err', 'VERDICT: Standard delete completely failed to protect data!');
+    toast(`${found.length} files recovered from deleted sectors!`, '💀');
+  } else {
+    clog('ok', 'Scan complete: 0 recoverable files. Drive is sanitized. ✅');
+    toast('No data found — drive is clean!', '✅');
+  }
+}
+
+/* ══════════════════════════════════════════
+   STEP 4 — WIPE
+══════════════════════════════════════════ */
+function openWipe()  { document.getElementById('wipe-modal').classList.add('show'); }
+function closeWipe() { document.getElementById('wipe-modal').classList.remove('show'); }
+
+function startWipe() {
+  const algo  = document.querySelector('input[name="wm"]:checked').value;
+  const names = { clear:'NIST SP 800-88 Clear (0x00)', purge:'NIST SP 800-88 Purge / Crypto Erase', dod:'DoD 5220.22-M 3-Pass' };
+  closeWipe();
+  setStep(4, 's-done');
+  clog('info', `Wipe engine: ${names[algo]} — starting…`);
+
+  document.getElementById('prog').classList.add('show');
+  document.getElementById('prog-s').textContent = names[algo];
+
+  let cur = 0;
+  const timer = setInterval(() => {
+    if (cur >= NSEC) {
+      clearInterval(timer);
+      document.getElementById('prog').classList.remove('show');
+      finishWipe();
+      return;
+    }
+    secs[cur].status = 'wiped';
+    secs[cur].data   = '\x00'.repeat(16);
+    files.forEach(f => { if (f.secs.includes(cur)) f.status = 'wiped'; });
+
+    /* Flash wipe animation */
+    const el = document.getElementById('grid').children[cur];
+    if (el) { el.classList.add('wiping'); setTimeout(() => el.classList.remove('wiping'), 300); }
+    secs[cur].status = 'wiped';
+    renderGrid();
+
+    const pct = Math.round((cur + 1) / NSEC * 100);
+    document.getElementById('prog-fill').style.width = pct + '%';
+    document.getElementById('prog-pct').textContent  = pct + '%';
+    document.getElementById('prog-sec').textContent  = `Sector [${String(cur+1).padStart(2,'0')} / ${NSEC}]`;
+
+    if (cur === selSec) showHex(cur);
+    cur++;
+  }, 24);
+}
+
+function finishWipe() {
+  renderGrid(); renderMFT();
+  if (selSec >= 0) showHex(selSec);
+  clog('ok', '✅ All 64 sectors sanitized. Entropy: 0.00 bits/byte.');
+  clog('ok', '✅ HPA/DCO sectors purged. No recoverable data remains.');
+  clog('info', 'Certificate: open localhost:5050 (real Flask engine with RSA-PSS signing).');
+  toast('Drive sanitized — safe to recycle! 🛡️', '🟢');
+}
+
+/* ══════════════════════════════════════════
+   RESET
+══════════════════════════════════════════ */
+function resetAll() {
+  scanning = false;
+  closeTip();
+  document.getElementById('scan-line').classList.remove('show');
+  document.getElementById('prog').classList.remove('show');
+  document.getElementById('wipe-modal').classList.remove('show');
+  init(); renderGrid(); renderMFT();
+  selSec = -1;
+  document.getElementById('hex-box').innerHTML = '<div style="color:var(--muted);font-style:italic;font-size:11px">Click any block in the grid to inspect its raw bytes.</div>';
+  document.getElementById('hex-badge').textContent = '← click a sector';
+  document.getElementById('ent-fill').style.width = '0%';
+  document.getElementById('ent-val').textContent = '— bits/byte';
+  document.getElementById('console').innerHTML  = '<div class="cl"><span class="cl-ts">--:--</span><span class="cl-sys">Drive reset. Ready.</span></div>';
+  document.getElementById('con-st').textContent = 'IDLE';
+  document.getElementById('con-st').style.color = 'var(--muted)';
+  [1,2,3,4].forEach(i => document.getElementById('stab-' + i).className = 'step' + (i===1?' s-active':''));
+  switchTab('mft');
+  toast('Drive reset', '🔄');
+}
+
+/* Boot */
+window.onload = () => { init(); renderGrid(); renderMFT(); };
+</script>
+</body>
+</html>
